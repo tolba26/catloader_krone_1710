@@ -1,0 +1,460 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>صفقات المعدات المعروضة</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: one calm column — header, deals per equipment type, market prices, then one filterable list */
+:root{
+  --bg:#f5f4f0; --surface:#ffffff; --ink:#1d1f22; --muted:#6a6d70; --line:#e2e0d9;
+  --accent:#c98a10; --accent-soft:#fbf1dc; --accent-ink:#7a5205;
+  --good:#1f7a4d; --good-soft:#e3f3ea; --warn:#b4472b; --warn-soft:#fbe8e2; --blue:#2c5d8a; --blue-soft:#e6eef6;
+  --f-display:"Readex Pro","IBM Plex Sans Arabic",Tahoma,sans-serif;
+  --f-body:"IBM Plex Sans Arabic",Tahoma,"Segoe UI",sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141517; --surface:#1d1f22; --ink:#ecebe6; --muted:#9a9c9e; --line:#2e3034;
+  --accent:#e2a63a; --accent-soft:#33280f; --accent-ink:#f2c46e;
+  --good:#5cc08c; --good-soft:#15291f; --warn:#ec8a6e; --warn-soft:#331d17; --blue:#7fb0dd; --blue-soft:#17242f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141517; --surface:#1d1f22; --ink:#ecebe6; --muted:#9a9c9e; --line:#2e3034;
+  --accent:#e2a63a; --accent-soft:#33280f; --accent-ink:#f2c46e;
+  --good:#5cc08c; --good-soft:#15291f; --warn:#ec8a6e; --warn-soft:#331d17; --blue:#7fb0dd; --blue-soft:#17242f; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px}
+.wrap{max-width:1100px;margin:0 auto}
+a{color:inherit}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
+
+header{padding-block:36px 24px;border-bottom:1px solid var(--line);display:grid;gap:14px}
+.eyebrow{font-size:13px;color:var(--muted);letter-spacing:.02em}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(26px,4.4vw,38px);line-height:1.25;margin:0;text-wrap:balance}
+.sub{color:var(--muted);margin:0;max-width:62ch}
+.cats{display:flex;flex-wrap:wrap;gap:8px}
+.cat{font-size:13px;border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:3px 10px;direction:ltr}
+.stats{display:flex;flex-wrap:wrap;gap:10px 28px;margin-top:6px}
+.stat b{font-family:var(--f-display);font-size:22px;display:block;line-height:1.1}
+.stat span{font-size:13px;color:var(--muted)}
+
+h2{font-family:var(--f-display);font-weight:600;font-size:21px;margin:0}
+h3{font-family:var(--f-display);font-weight:600;font-size:16px;margin:8px 0 0;color:var(--muted)}
+section{padding-block:32px 8px;display:grid;gap:14px}
+.sec-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px}
+.sec-head p{margin:0;color:var(--muted);font-size:14px}
+
+.deals{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.deal{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:9px;align-content:start;text-decoration:none;transition:border-color .15s}
+.deal:hover,.deal:focus-visible{border-color:var(--accent);outline:none}
+.deal .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.model{font-family:var(--f-display);font-weight:700;font-size:19px;direction:ltr;unicode-bidi:isolate}
+.model small{font-family:var(--f-body);font-weight:500;font-size:13px;color:var(--muted);margin-inline-start:6px}
+.price{font-family:var(--f-num);font-weight:600;font-size:22px;direction:ltr;text-align:right}
+.price .cad{font-size:12px;color:var(--muted);font-weight:500;margin-inline-start:6px}
+.deal .why{font-size:14px;margin:0}
+.meta{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--muted)}
+.deal .go{font-size:13px;color:var(--accent-ink);font-weight:600}
+
+.pill{display:inline-block;font-size:12px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.p-top{background:var(--accent-soft);color:var(--accent-ink)}
+.p-good{background:var(--good-soft);color:var(--good)}
+.p-auc{background:var(--blue-soft);color:var(--blue)}
+.p-new{background:transparent;color:var(--good);border:1px solid var(--good);padding:1px 8px}
+.p-warn{background:var(--warn-soft);color:var(--warn)}
+.p-call{background:transparent;color:var(--muted);border:1px solid var(--line);padding:1px 8px}
+
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{font:inherit;font-size:14px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:6px 14px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sep{width:1px;height:22px;background:var(--line);margin-inline:4px}
+select{font:inherit;font-size:14px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+.count{font-size:13px;color:var(--muted);margin-inline-start:auto}
+
+.list{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.row{display:grid;grid-template-columns:130px 60px 120px 130px minmax(0,1fr) 110px;gap:12px;align-items:center;padding:12px 16px;border-top:1px solid var(--line);text-decoration:none}
+.row:first-child{border-top:0}
+.row.head{font-size:12px;color:var(--muted);padding-block:10px;background:var(--bg)}
+a.row:hover,a.row:focus-visible{background:var(--accent-soft);outline:none}
+.row .model{font-size:15px}
+.row .price{font-size:15px;text-align:start}
+.row .use{font-size:13px}
+.row .where{min-width:0}
+.row .where div{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .where .s{font-size:13px;color:var(--muted)}
+.row .note{font-size:13px;color:var(--muted);white-space:normal}
+.tags{display:flex;flex-wrap:wrap;gap:4px}
+.src{font-size:12px;color:var(--muted);text-align:end}
+.empty{padding:28px 16px;color:var(--muted);text-align:center}
+
+.mkt{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+.mk{border-top:2px solid var(--ink);padding-top:10px}
+.mk .model{font-size:16px}
+.mk .num.big{font-size:18px;font-weight:600}
+.mk p{margin:2px 0 0;font-size:13px;color:var(--muted)}
+.mk p.sold{color:var(--good)}
+
+.notice{background:var(--warn-soft);border-radius:10px;padding:14px 16px;display:grid;gap:4px}
+.notice b{color:var(--warn);font-family:var(--f-display);font-weight:600}
+.notice p{margin:0;font-size:14px}
+footer{margin-top:28px;padding-top:16px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+.yh{display:none;font-size:13px;color:var(--muted)}
+
+@media (max-width:760px){
+  .row.head{display:none}
+  .row{grid-template-columns:1fr auto;grid-template-areas:"m p" "w w" "t s";gap:6px 12px}
+  .row .c-model{grid-area:m}.row .c-price{grid-area:p;text-align:end}.row .where{grid-area:w}.row .tags{grid-area:t}.row .src{grid-area:s}
+  .row .c-year,.row .c-use{display:none}
+  .row .where .yh{display:block}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap" dir="rtl" lang="ar">
+<header>
+  <div class="eyebrow">أمريكا وكندا · محدّث <span class="num">8 Nov 2026</span></div>
+  <h1>المعدات المعروضة للبيع وأحسن الصفقات</h1>
+  <div class="cats"><span class="cat">Cat 980H · 980G · 972H · 972G · 966D</span><span class="cat">Krone BiG Pack 1290 HDP</span><span class="cat">John Deere 1710 Planter</span></div>
+  <p class="sub">كل المعروض حالياً من الوكلا والتجار الصغيرين والبيع المباشر من المزارعين والمزادات، مع تعليم على أحسن الصفقات. اضغط على أي مكنة يفتح لك الإعلان.</p>
+  <div class="stats" id="stats"></div>
+</header>
+
+<section>
+  <div class="sec-head"><h2>أحسن الصفقات دلوقتي</h2><p>سعرها أقل من السوق بشكل واضح أو حالتها تستاهل</p></div>
+  <div id="deals"></div>
+</section>
+
+<section>
+  <div class="sec-head"><h2>أسعار السوق</h2><p>متوسط المعروض، وآخر أسعار بيع فعلية في المزادات</p></div>
+  <div class="mkt" id="mkt"></div>
+</section>
+
+<section>
+  <div class="sec-head"><h2>كل المعروض</h2></div>
+  <div class="filters" role="toolbar" aria-label="فلترة">
+    <button class="chip" id="f-all" data-m="all" aria-pressed="true">الكل</button>
+    <button class="chip" id="f-980H" data-m="980H" aria-pressed="false">980H</button>
+    <button class="chip" id="f-980G" data-m="980G" aria-pressed="false">980G</button>
+    <button class="chip" id="f-972H" data-m="972H" aria-pressed="false">972H</button>
+    <button class="chip" id="f-972G" data-m="972G" aria-pressed="false">972G</button>
+    <button class="chip" id="f-966D" data-m="966D" aria-pressed="false">966D</button>
+    <button class="chip" id="f-krone" data-m="1290" aria-pressed="false">Krone 1290</button>
+    <button class="chip" id="f-jd" data-m="1710" aria-pressed="false">JD 1710</button>
+    <span class="sep" aria-hidden="true"></span>
+    <button class="chip" id="f-deals" aria-pressed="false">الصفقات بس</button>
+    <button class="chip" id="f-auc" aria-pressed="false">المزادات بس</button>
+    <button class="chip" id="f-priced" aria-pressed="false">بسعر معلن بس</button>
+    <select id="f-country" aria-label="البلد"><option value="all">أمريكا + كندا</option><option value="US">أمريكا</option><option value="CA">كندا</option></select>
+    <select id="f-sort" aria-label="الترتيب"><option value="deal">الأفضل الأول</option><option value="price">الأرخص الأول</option><option value="use">أقل استخدام</option><option value="year">الأحدث موديل</option></select>
+    <span class="count" id="count"></span>
+  </div>
+  <div class="list" id="list"></div>
+</section>
+
+<section>
+  <div class="notice">
+    <b>خلي بالك</b>
+    <p>فيه إعلانات من الصين على نفس المواقع بأسعار 15 لـ 25 ألف دولار ومكتوب إنها لودرات كات موديل 2023–2024. الموديلات دي وقف تصنيعها من سنين، فالإعلانات دي غالباً نصب. شيلناها من القايمة.</p>
+    <p>المكابس: أهم حاجة عدد البالات وحالة العُقّادات (knotters). البلانتر: عدد الخطوط والمسافة بينهم (30 بوصة هو الأشهر).</p>
+    <p>أي حاجة سعرها أقل بكتير من السوق ومعلوماتها قليلة: نطلب فيديو وهي شغالة ورقم الشاسيه قبل أي تحويل.</p>
+  </div>
+</section>
+
+<footer>الأسعار بالدولار الأمريكي. الإعلانات الكندية المكتوبة بالدولار الكندي متحوّلة لأمريكي (حوالي 0.71) والسعر الكندي مكتوب جنبها. المزادات بيتضاف عليها عمولة المشتري (حوالي 10%). الأسعار والتوفر بيتغيروا بسرعة، فيُفضّل التأكيد مع البايع.</footer>
+</div>
+
+<script>
+const MT='https://www.machinerytrader.com/listing/for-sale/';
+const TH='https://www.tractorhouse.com/listing/for-sale/';
+const MB='https://www.marketbook.ca/listing/for-sale/';
+const MC='https://www.machinio.com/listings/';
+const IP='https://www.ironplanet.com/jsp/s/item/';
+const RB='https://www.rbauction.com/pdp/';
+const CAD=0.708;
+// k kind (L loader, B baler, P planter), m model group, s variant, y year, h hours / b bales / r rows text, p price USD, cad original CAD, c country, loc, sel seller, u url, src, d deal (top|good|warn), n note, nw new, a auction close, bid current bid
+const D=[
+ // ===== Cat 980H =====
+ {k:'L',m:'980H',y:2008,h:18000,p:55000,c:'US',loc:'Old Forge, PA',sel:'Trion Equipment Sales',u:MT+'256570667',src:'MachineryTrader',d:'top',n:'شغالة ممتاز، كاوتش عميق، جاهزة للشغل. أرخص 980H في السوق بساعات معقولة.'},
+ {k:'L',m:'980H',y:2006,h:10529,p:84999,c:'US',loc:'Hidalgo, TX',sel:'Quinlon Investments',u:MT+'262028123',src:'MachineryTrader',d:'top',nw:1,n:'ساعات قليلة جداً (10,500) وبسعر جملة. قريبة من حدود المكسيك.'},
+ {k:'L',m:'980H',y:null,h:23600,p:60000,c:'US',loc:'Friedens, PA',sel:'تاجر محلي',u:MC+'117620702-cat-loader-jms01620-in-friedens-pa',src:'Machinio',d:'top',n:'980H بسعر 60 ألف. موديل حوالي 2006–2007 حسب رقم الشاسيه.'},
+ {k:'L',m:'980H',y:2006,h:null,p:59750,c:'US',loc:'Pleasureville, KY',sel:'Clark Heavy Equipment',u:MT+'256950341',src:'MachineryTrader',d:'good',n:'سعر قليل، اسأل على عدد الساعات.'},
+ {k:'L',m:'980H',y:2006,h:17184,p:79750,c:'US',loc:'Pleasureville, KY',sel:'Clark Heavy Equipment',u:MT+'256950633',src:'MachineryTrader',d:'good',n:'تكييف، Auto Shift، هيدروليك إضافي، جردل 132 بوصة، تشحيم أوتوماتيك.'},
+ {k:'L',m:'980H',y:2008,h:32077,p:90000,c:'US',loc:'Dale, IN',sel:'Sexton Equipment',u:MT+'260788939',src:'MachineryTrader',d:'good',nw:1,n:'High Lift + ميزان. متجدد فيها الكابينة والناقل والتيربو وطرمبة المية.'},
+ {k:'L',m:'980H',y:2006,h:23769,p:129000,c:'US',loc:'Pontoon Beach, IL',sel:'Hall Equipment',u:MT+'261186515',src:'MachineryTrader',d:'good',nw:1,n:'مالك واحد. عليها 9,000 ساعة بس من عمرة كات معتمدة للموتور والهيدروليك.'},
+ {k:'L',m:'980H',y:2012,h:18300,p:69000,c:'CA',loc:'Amaranth, ON',sel:'Blue Oceans Trading',u:MT+'261877631',src:'MachineryTrader',d:'warn',nw:1,n:'سعر قليل جداً لموديل 2012 والإعلان مفيهوش تفاصيل. يتأكد منها كويس قبل أي فلوس.'},
+ {k:'L',m:'980H',y:2011,h:null,p:null,c:'CA',loc:'Aumond, QC',sel:'تاجر محلي',u:MC+'110991549-2011-caterpillar-980h-in-aumond-canada',src:'Machinio',d:'good',n:'عمرة كاملة: موتور وناقل وهيدروليك، صفر ساعة بعد العمرة. اسأل على السعر.'},
+ {k:'L',m:'980H',y:2005,h:33372,p:null,c:'US',loc:'Bartlett, TN',sel:'تاجر محلي',u:MC+'119689540-2005-caterpillar-980h-in-bartlett-tn',src:'Machinio',n:'وكيل كات عمل لها صيانة بـ 93,600 دولار من 1,300 ساعة، والفواتير موجودة.'},
+ {k:'L',m:'980H',y:2005,h:null,p:85000,c:'US',loc:'California',sel:'تاجر محلي',u:MC+'85363942-caterpillar-980h-in-california-usa',src:'Machinio',n:'Ride Control، جردل متكبّر لـ 8.5 ياردة.'},
+ {k:'L',m:'980H',y:2008,h:31906,p:90000,c:'US',loc:'Jasonville, IN',sel:'Crowe Equipment',u:MT+'220786673',src:'MachineryTrader'},
+ {k:'L',m:'980H',y:2008,h:35804,p:90000,c:'US',loc:'Salt Lake City, UT',sel:'Wheeler Machinery (وكيل كات)',u:MT+'260147185',src:'MachineryTrader',nw:1},
+ {k:'L',m:'980H',y:2006,h:null,p:79500,c:'US',loc:'Houston, TX',sel:'Black Mountain Machinery',u:MT+'257905197',src:'MachineryTrader'},
+ {k:'L',m:'980H',y:2006,h:null,p:84000,c:'CA',loc:'Montréal, QC',sel:'Sonamar',u:MT+'227271691',src:'MachineryTrader',n:'شغالة كويس.'},
+ {k:'L',m:'980H',y:2008,h:30000,p:102717,c:'CA',loc:'Rocky View, AB',sel:'Pacesetter Equipment',u:MT+'257319743',src:'MachineryTrader',n:'Ride Control، كوبلر. شغالة في أسطول إيجار.'},
+ {k:'L',m:'980H',y:2011,h:31730,p:185000,c:'US',loc:'Jasonville, IN',sel:'Crowe Equipment',u:MT+'220825975',src:'MachineryTrader',n:'ناقل وطرمبة هيدروليك متجددين، جردل كبير.'},
+ {k:'L',m:'980H',y:2006,h:7152,p:220000,c:'US',loc:'Albany, NY',sel:'WM Biers',u:MT+'218891795',src:'MachineryTrader',n:'ساعات قليلة جداً، معاها ماسك جذوع وجردل. السعر عالي.'},
+ {k:'L',m:'980H',y:2010,h:27878,p:342507,c:'CA',loc:'Oro-Medonte, ON',sel:'Toromont (وكيل كات)',u:MT+'244123761',src:'MachineryTrader'},
+ {k:'L',m:'980H',y:2008,h:18552,p:415000,c:'US',loc:'Salt Lake City, UT',sel:'Wheeler Machinery (وكيل كات)',u:MT+'258405755',src:'MachineryTrader'},
+ {k:'L',m:'980H',y:2007,h:27683,p:null,c:'US',loc:'Russellville, AR',sel:'Ritchie Bros',u:RB+'2007-cat-980h-wheel-loader/15803045',src:'Ritchie Bros',a:'قدّم عرض',n:'متاحة بنظام "قدّم عرضك".'},
+ {k:'L',m:'980H',y:2013,h:41979,p:null,c:'US',loc:'Phoenix, AZ',sel:'Ritchie Bros',u:RB+'2013-cat-980-h-wheel-loader/16216687',src:'Ritchie Bros',a:'17 Nov'},
+ {k:'L',m:'980H',y:2010,h:25622,p:null,c:'US',loc:'Cordova, TN',sel:'IronPlanet',u:IP+'16192169',src:'IronPlanet',a:'19 Nov'},
+ {k:'L',m:'980H',y:2007,h:19111,p:null,c:'US',loc:'Cordova, TN',sel:'IronPlanet',u:IP+'16192205',src:'IronPlanet',a:'19 Nov'},
+ {k:'L',m:'980H',y:2007,h:28434,p:null,c:'US',loc:'Cordova, TN',sel:'IronPlanet',u:IP+'16192178',src:'IronPlanet',a:'19 Nov'},
+ {k:'L',m:'980H',y:2006,h:19864,p:null,c:'US',loc:'Price, UT',sel:'IronPlanet',u:IP+'16217866',src:'IronPlanet',a:'19 Nov'},
+ {k:'L',m:'980H',y:2006,h:null,p:null,bid:46000,c:'US',loc:'Ashdown, AR',sel:'GovDeals (شركة تعدين)',u:'https://www.govdeals.com/en/asset/106/29487',src:'GovDeals',a:'12 Nov',d:'good',n:'آخر مزايدة 46,000 دولار من 24 مزايدة والحد الأدنى لسه ما اتحققش. الموتور C15 وجردل 132 بوصة. فيه تسريب هيدروليك والعجل مستخدم كتير، وفيه تقرير حالة مرفق. عمولة المشتري 8%.'},
+ // ===== Cat 980G =====
+ {k:'L',m:'980G',y:null,h:32266,p:28000,c:'US',loc:'Bay Center, WA',sel:'تاجر محلي',u:MC+'106304493-caterpillar-980g-wheel-loader-in-bay-center-wa',src:'Machinio',d:'top',n:'أرخص 980G شغالة. الموتور مش الأصلي (3406C)، وفيه فيديوهات وهي شغالة.'},
+ {k:'L',m:'980G',y:2000,h:null,p:37500,c:'US',loc:'Pleasureville, KY',sel:'Clark Heavy Equipment',u:MT+'257825751',src:'MachineryTrader',d:'top',n:'شغالة، تكييف، كوبلر، ومعاها شوكة + جردل.'},
+ {k:'L',m:'980G',y:1999,h:29000,p:44500,c:'US',loc:'Johnston, RI',sel:'Iron Tech',u:MT+'262039205',src:'MachineryTrader',d:'top',nw:1,n:'مالك واحد، ناقل متجدد، Ride Control، الكاوتش 90% قدام. لسه نازلة.'},
+ {k:'L',m:'980G',s:'II',y:2002,h:36397,p:62500,c:'US',loc:'North Haven, CT',sel:'Equip-Sales & Leasing',u:MT+'212416329',src:'MachineryTrader',d:'top',n:'ناقل جديد وعمرة موتور قريبة، ميزان وتشحيم أوتوماتيك. شغالة يومياً.'},
+ {k:'L',m:'980G',y:1998,h:null,p:47500,c:'US',loc:'Old Forge, PA',sel:'Trion Equipment Sales',u:MT+'261283427',src:'MachineryTrader',d:'good',nw:1,n:'شغالة ممتاز، وسط مشدود، جردل كويس.'},
+ {k:'L',m:'980G',y:2002,h:null,p:45000,c:'CA',loc:'Montréal, QC',sel:'Sonamar',u:MT+'227271639',src:'MachineryTrader',d:'good',n:'لودر جذوع، حالة كويسة.'},
+ {k:'L',m:'980G',y:2000,h:31296,p:55254,c:'CA',loc:'Agassiz, BC',sel:'WeconsignEquip',u:MT+'259787533',src:'MachineryTrader + Kijiji',d:'good',n:'ميزان، تشحيم أوتوماتيك، تكييف. الشحن والتمويل متاحين.'},
+ {k:'L',m:'980G',s:'II',y:2003,h:30908,p:63047,c:'CA',loc:'Agassiz, BC',sel:'WeconsignEquip',u:MT+'259787061',src:'MachineryTrader + Kijiji',n:'معاها جردل صخر HD.'},
+ {k:'L',m:'980G',s:'II',y:2003,h:36659,p:69422,c:'CA',loc:'Agassiz, BC',sel:'WeconsignEquip',u:MT+'259763307',src:'MachineryTrader + Kijiji',n:'ميزان وتشحيم أوتوماتيك.'},
+ {k:'L',m:'980G',y:1997,h:52689,p:45000,c:'US',loc:'Friedens, PA',sel:'Elk Horn Equipment',u:MT+'256400827',src:'MachineryTrader',n:'ساعات عالية.'},
+ {k:'L',m:'980G',y:1996,h:38548,p:47000,c:'US',loc:'Lancaster, CA',sel:'Pacific Cranes',u:MT+'20913457',src:'MachineryTrader',n:'تكييف، شغالة، مسامير ودلاديل الدركسيون جديدة.'},
+ {k:'L',m:'980G',y:1998,h:35000,p:50000,c:'US',loc:'Moriches, NY',sel:'Global Land Equipment',u:MT+'216081945',src:'MachineryTrader'},
+ {k:'L',m:'980G',y:1997,h:39000,p:54500,c:'US',loc:'Lebanon, PA',sel:'Heavy Equipment, Loaders & Parts',u:MT+'238463275',src:'MachineryTrader'},
+ {k:'L',m:'980G',y:null,h:27654,p:58900,c:'US',loc:'Monroe, WI',sel:'M & D Truck & Equipment',u:MT+'258588703',src:'MachineryTrader',n:'سجل صيانة مرفق.'},
+ {k:'L',m:'980G',y:2000,h:45525,p:69900,c:'US',loc:'Wayne, MI',sel:'تاجر محلي',u:MC+'121406309-2000-caterpillar-980g-in-wayne-mi',src:'Machinio',n:'Ride Control، تكييف.'},
+ {k:'L',m:'980G',y:1998,h:23627,p:72500,c:'US',loc:'Carbondale, PA',sel:'Old Forge Power Equipment',u:MT+'254190657',src:'MachineryTrader',n:'موتور ميكانيكي قبل الانبعاثات (سهل الصيانة)، جردل 7 ياردة.'},
+ {k:'L',m:'980G',s:'II',y:2002,h:21293,p:82000,c:'US',loc:'Aurora, CO',sel:'Raw Machinery',u:MT+'260659707',src:'MachineryTrader',n:'حالة كويسة، كاوتش 45%.'},
+ {k:'L',m:'980G',y:1999,h:17615,p:84653,c:'CA',loc:'Rocky View, AB',sel:'Pacesetter Equipment',u:MT+'255609151',src:'MachineryTrader'},
+ {k:'L',m:'980G',y:2000,h:36600,p:98900,c:'US',loc:'Wayne, MI',sel:'تاجر محلي',u:MC+'121406308-2000-caterpillar-980g-in-wayne-mi',src:'Machinio'},
+ {k:'L',m:'980G',y:2000,h:28200,p:106259,c:'CA',loc:'Maniwaki, QC',sel:'Versa Equipment',u:MT+'251169659',src:'MachineryTrader',n:'معاها ماسك، ناقل جديد.'},
+ {k:'L',m:'980G',y:2001,h:51000,p:135000,c:'US',loc:'Lancaster, CA',sel:'Pacific Cranes',u:MT+'216696337',src:'MachineryTrader',n:'لودر غابات بشوكة جذوع.'},
+ {k:'L',m:'980G',y:null,h:3212,p:249900,c:'US',loc:'Bluefield, WV',sel:'NFS Capital',u:MT+'255454831',src:'MachineryTrader',n:'عمرة كات معتمدة 2024.'},
+ {k:'L',m:'980G',y:2000,h:30280,p:499500,c:'US',loc:'Birmingham, AL',sel:'Thompson Tractor (وكيل كات)',u:MT+'248240533',src:'MachineryTrader',n:'مجددة بالكامل.'},
+ {k:'L',m:'980G',y:1997,h:null,p:null,c:'US',loc:'San Diego, CA',sel:'تاجر محلي',u:MC+'113864379-1997-caterpillar-980g-in-san-diego-ca',src:'Machinio',n:'موتور مجدد، 5,000 ساعة على عمرة كاملة. شغالة يومياً.'},
+ {k:'L',m:'980G',y:1999,h:null,p:null,c:'US',loc:'Hatch, NM',sel:'تاجر محلي',u:MC+'119918260-1999-caterpillar-980g-in-bartlett-tn',src:'Machinio'},
+ {k:'L',m:'980G',y:2001,h:null,p:null,c:'US',loc:'Houston, TX',sel:'Energy Kinetics',u:MT+'261433073',src:'MachineryTrader',nw:1,n:'شغالة كويس.'},
+ {k:'L',m:'980G',y:1997,h:null,p:null,c:'US',loc:'London, KY',sel:'Premier Equipment',u:MT+'31656075',src:'MachineryTrader'},
+ {k:'L',m:'980G',y:1996,h:null,p:null,c:'US',loc:'Oakdale, PA',sel:'OEC Rentals',u:MT+'250630633',src:'MachineryTrader'},
+ {k:'L',m:'980G',y:1997,h:19483,p:null,bid:4100,c:'US',loc:'Moran, TX',sel:'Purple Wave',u:'https://www.purplewave.com/auction/261203/item/FM8057/1997-Caterpillar-980G-Wheel_Loaders-Wheel_Loader-Texas',src:'Purple Wave',a:'3 Dec',d:'good',n:'19,500 ساعة، تكييف، جردل 136 بوصة. المزايدة لسه في الأول، ممكن تطلع لقطة.'},
+ {k:'L',m:'980G',y:1999,h:null,p:null,c:'US',loc:'Federal Way, WA',sel:'Ritchie Bros',u:RB+'1999-cat-980g-wheel-loader/16147545',src:'Ritchie Bros',a:'15 Dec'},
+ {k:'L',m:'980G',y:null,h:null,p:null,c:'US',loc:'Sellersburg, IN',sel:'IronPlanet',u:IP+'16207139',src:'IronPlanet',a:'19 Nov'},
+ // ===== Cat 972H =====
+ {k:'L',m:'972H',y:2007,h:20317,p:null,bid:20100,c:'US',loc:'Spring City, TN',sel:'Integrity Sales & Auction',u:'https://www.equipmentfacts.com/listing/upcoming-auctions/261918891/caterpillar-972h-wheel-loaders',src:'AuctionTime',a:'10 Nov',d:'top',n:'آخر مزايدة 20,100 دولار، ومثلها اتباع في المزادات بـ 59 لـ 74 ألف. تكييف، جويستيك. المعاينة بميعاد.'},
+ {k:'L',m:'972H',y:2007,h:1416,p:null,c:'US',loc:'Morris, IL',sel:'Ritchie Bros',u:RB+'2007-cat-972h-wheel-loader/16092984',src:'Ritchie Bros',a:'12 Nov',d:'top',n:'العداد 1,416 ساعة والبايع بيقول إنها الساعات الحقيقية. كوبلر هيدروليك، جردل 5.25 ياردة. ريتشي عاملين عليها فحص.'},
+ {k:'L',m:'972H',y:2009,h:15000,p:null,c:'US',loc:'Mead, CO',sel:'Ritchie Bros',u:RB+'2009-cat-972h-wheel-loader/15655277',src:'Ritchie Bros',a:'10 Dec',d:'good',n:'ساعات قليلة لموديل 2009.'},
+ {k:'L',m:'972H',y:2006,h:23111,p:null,c:'CA',loc:'Amaranth, ON',sel:'Ritchie Bros',u:RB+'2006-cat-972h-wheel-loader/16186033',src:'Ritchie Bros',a:'9 Dec'},
+ {k:'L',m:'972H',y:2008,h:26251,p:90000,c:'US',loc:'Tukwila, WA',sel:'Tractor & Equipment Co.',u:MT+'242578229',src:'MachineryTrader'},
+ {k:'L',m:'972H',y:2007,h:21164,p:95580,cad:135000,c:'CA',loc:'Victoriaville, QC',sel:'Ritchie Bros',u:RB+'2007-cat-972h-wheel-loader/15752289',src:'Ritchie Bros',n:'اشتري فوراً أو قدّم عرض.'},
+ {k:'L',m:'972H',y:2006,h:20685,p:102500,c:'US',loc:'Albany, NY',sel:'WM Biers',u:MT+'238850813',src:'MachineryTrader',n:'Ride Control، جويستيك، تكييف. شغالة كويس.'},
+ {k:'L',m:'972H',y:2007,h:18057,p:111860,cad:158000,c:'CA',loc:'Mill Bay, BC',sel:'Ritchie Bros',u:RB+'2007-cat-972h-wheel-loader/16093048',src:'Ritchie Bros',n:'اشتري فوراً أو قدّم عرض.'},
+ // ===== Cat 972G =====
+ {k:'L',m:'972G',s:'II',y:2005,h:18406,p:65900,c:'US',loc:'Kimball, MI',sel:'I.C.S. LLC',u:MT+'261072331',src:'MachineryTrader',d:'top',nw:1,n:'الموتور اتغير عند 14,000 ساعة بفواتير وكيل كات. 280 حصان، جردل 126 بوصة.'},
+ {k:'L',m:'972G',y:2001,h:null,p:80000,c:'US',loc:'Newark, NJ',sel:'Newark Equipment Sales',u:MT+'215403625',src:'MachineryTrader',d:'good',n:'6,000 ساعة بس على موتور وناقل مجددين من كات. Ride Control.'},
+ {k:'L',m:'972G',y:2002,h:18075,p:85250,c:'US',loc:'Prairieville, LA',sel:'Proxy Equipment',u:'https://tractorzoom.com/equipment/2002-caterpillar-972g-df028298-2f49-4a8a-b097-e2ed50cb6172',src:'TractorZoom'},
+ {k:'L',m:'972G',s:'II',y:2005,h:24062,p:89900,c:'US',loc:'Waterloo, NE',sel:'C-Max Inc',u:MT+'220272883',src:'MachineryTrader',n:'ميزان، تكييف، Ride Control، كابينة متدهنة. جاهزة للشغل.'},
+ {k:'L',m:'972G',y:2000,h:null,p:null,c:'US',loc:'Manchester, NH',sel:'Joseph Equipment',u:MT+'208872071',src:'MachineryTrader',n:'كاوتش جديد، أوزان إضافية، كاميرا خلفية. حالة ممتازة.'},
+ // ===== Cat 966D =====
+ {k:'L',m:'966D',y:1990,h:null,p:37000,c:'CA',loc:'Montréal, QC',sel:'Sonamar',u:MT+'229279365',src:'MachineryTrader',d:'top',n:'السعر شامل التحميل في كونتينر. شغالة، معاها كوبلر.'},
+ {k:'L',m:'966D',y:1984,h:8854,p:34000,c:'US',loc:'North Branford, CT',sel:'Cherry Hill Equipment',u:MT+'244175653',src:'MachineryTrader',d:'good',n:'هيدروليك إضافي، جردل تفريغ جانبي.'},
+ {k:'L',m:'966D',y:1985,h:15000,p:36000,c:'US',loc:'—',sel:'HeavyEquipment.com',u:'https://heavyequipment.com/listings/AFD-cat-966d-wheel-loader',src:'HeavyEquipment',n:'كابينة مقفولة، جردل 118 بوصة، كوبلر.'},
+ {k:'L',m:'966D',y:1989,h:null,p:40000,c:'CA',loc:'Montréal, QC',sel:'Sonamar',u:MT+'227268893',src:'MachineryTrader',d:'good',n:'الموتور قوي، الناقل ناعم. جاهزة للشغل.'},
+ {k:'L',m:'966D',y:1989,h:null,p:42000,c:'CA',loc:'Montréal, QC',sel:'Sonamar',u:MT+'227262285',src:'MachineryTrader',n:'حالة كويسة.'},
+ {k:'L',m:'966D',y:1987,h:null,p:49000,c:'CA',loc:'Montréal, QC',sel:'Sonamar',u:MT+'259600203',src:'MachineryTrader',n:'تكييف، هيدروليك إضافي، صيانة ممتازة.'},
+ {k:'L',m:'966D',y:1989,h:9000,p:55000,c:'CA',loc:'Montréal, QC',sel:'Sonamar',u:MT+'261411837',src:'MachineryTrader',nw:1,n:'مالك واحد، كانت شغالة جنب كسارة رمل وزلط.'},
+ {k:'L',m:'966D',y:1981,h:null,p:null,c:'US',loc:'Sugar Land, TX',sel:'EIG Equipment',u:MT+'259425875',src:'MachineryTrader'},
+ {k:'L',m:'966D',y:1986,h:null,p:null,c:'US',loc:'Columbia, MD',sel:'Energy Kinetics',u:MT+'260241775',src:'MachineryTrader'},
+ {k:'L',m:'966D',y:1984,h:null,p:null,c:'US',loc:'Baltimore, MD',sel:'Energy Kinetics',u:MT+'260306371',src:'MachineryTrader'},
+ {k:'L',m:'966D',y:1985,h:9438,p:null,c:'US',loc:'Texas',sel:'تاجر محلي',u:MC+'115321992-1985-caterpillar-966-d-in-texas-usa',src:'Machinio',n:'كابينة مقفولة.'},
+ {k:'L',m:'966D',y:1980,h:28436,p:null,c:'US',loc:'United States',sel:'تاجر محلي',u:MC+'115318824-1980-caterpillar-966-d-in-united-states',src:'Machinio'},
+ {k:'L',m:'966D',y:1987,h:null,p:null,c:'US',loc:'Little Falls, MN',sel:'IronPlanet',u:IP+'16097189',src:'IronPlanet',a:'19 Nov',n:'العداد مكتوب عليه 348 ساعة (غالباً عداد متغيّر).'},
+ {k:'L',m:'966D',y:null,h:null,p:null,c:'US',loc:'Federal Way, WA',sel:'IronPlanet',u:IP+'15753152',src:'IronPlanet',a:'19 Nov'},
+
+ // ===== Krone BiG Pack 1290 =====
+ {k:'B',m:'1290',s:'HDP',y:2021,b:27804,p:95000,c:'US',loc:'Lincoln, KS',sel:'Lincoln Farm Supply',u:TH+'244496975',src:'TractorHouse',d:'top',n:'HDP جيل 5، مراوح للعُقّادات. أرخص 2021 HDP في السوق بفرق 15–35 ألف.'},
+ {k:'B',m:'1290',s:'HDP',y:2022,b:29851,p:125000,c:'US',loc:'Lincoln, KS',sel:'Lincoln Farm Supply',u:TH+'242539305',src:'TractorHouse',d:'top',n:'جيل 5. رولمان VFS جديد، قضبان وبكر البستم جديدة، عمود العُقّادات متحدث لموديل 24. مثلها بيتباع بـ 145–210 ألف.'},
+ {k:'B',m:'1290',s:'HDP XC',y:2018,b:35000,p:70000,c:'US',loc:'Emmett, ID',sel:'Berry Machinery',u:'https://www.machinerypete.com/details/big-square-balers/2018/krone/bp1290hdp-x-treme/22351161',src:'MachineryPete',d:'top',n:'HDP X-treme بسكاكين تقطيع، 35,000 بالة بس. مثلها في كندا بـ 81 ألف وفوق.'},
+ {k:'B',m:'1290',s:'HDP XC',y:2014,b:50000,p:48000,c:'US',loc:'Yerington, NV',sel:'Mike Bobrick',u:TH+'253551885',src:'TractorHouse',d:'top',n:'سكاكين جديدة كلها و3 كاوتشات جديدة. الـ VFS اتجدد 2022 ومشي بعدها 1,500 بالة بس.'},
+ {k:'B',m:'1290',s:'HDP',y:2017,b:null,p:46900,c:'US',loc:'Fruitland, ID',sel:'Farm Equipment USA',u:TH+'258903211',src:'TractorHouse',d:'top',n:'أرخص HDP موديل 2017 بفرق كبير. اسأل على عدد البالات.'},
+ {k:'B',m:'1290',s:'HDP XC',y:2012,b:20734,p:69500,c:'US',loc:'Inwood, IA',sel:'Fabers Farm Equipment',u:TH+'240306767',src:'TractorHouse',d:'good',n:'عدد بالات قليل جداً لموديل 2012 (20,700).'},
+ {k:'B',m:'1290',s:'HS',y:2022,b:19136,p:87200,c:'US',loc:'Sidney, NE',sel:'Titan Machinery',u:TH+'246156585',src:'TractorHouse',d:'good',n:'High Speed موديل 2022 بأقل من 90 ألف.'},
+ {k:'B',m:'1290',s:'HS',y:2021,b:22281,p:77000,c:'US',loc:'Scottsbluff, NE',sel:'Titan Machinery',u:TH+'246156595',src:'TractorHouse',d:'good',n:'جاهزة للحقل، ميزان، كاوتش كويس، صيانة سنوية.'},
+ {k:'B',m:'1290',s:'',y:2020,b:14435,p:78500,c:'US',loc:'Cadott, WI',sel:'North Country Tractor',u:TH+'255757505',src:'TractorHouse',d:'good',n:'High Speed، 14,400 بالة بس، ميزان، ISOBUS. التمويل والتوصيل متاحين.'},
+ {k:'B',m:'1290',s:'HDP HS',y:2016,b:67000,p:60213,cad:85000,c:'CA',loc:'Nobleford, AB',sel:'Noble Equipment',u:TH+'250031721',src:'TractorHouse',d:'good',n:'معاها مُجمّع بالات Phiber. البايع بيساعد في الشحن لأمريكا.'},
+ {k:'B',m:'1290',s:'HDP HS',y:2015,b:80046,p:64599,c:'US',loc:'Tangent, OR',sel:'Linn Benton Tractor',u:TH+'243948977',src:'TractorHouse',d:'good',n:'شغالة، عاملة صيانة سنوية، حساس رطوبة وميزان.'},
+ {k:'B',m:'1290',s:'',y:2009,b:44173,p:34000,c:'US',loc:'Pasco, WA',sel:'S.S. Eq. Inc.',u:TH+'257525203',src:'TractorHouse',d:'good',n:'أرخص 1290 شغالة في أمريكا (مش HDP).'},
+ {k:'B',m:'1290',s:'',y:2012,b:null,p:31860,cad:45000,c:'CA',loc:'Nobleford, AB',sel:'Noble Equipment',u:MB+'259042393',src:'MarketBook',d:'good',n:'أرخص 1290 في كندا (مش HDP).'},
+ {k:'B',m:'1290',s:'',y:2013,b:53890,p:36128,cad:51000,c:'CA',loc:'Red Deer, AB',sel:'Brandt',u:TH+'238742183',src:'TractorHouse + Kijiji',d:'good',nw:1,n:'معاها جهاز رش مادة حافظة وتشحيم أوتوماتيك. اتعرضت على Kijiji امبارح.'},
+ {k:'B',m:'1290',s:'',y:2009,b:10000,p:null,c:'US',loc:'Lancaster, WI',sel:'Mainwest Equipment',u:'https://www.equipmentfacts.com/listing/upcoming-auctions/262070243/2009-krone-bp1290-large-square-balers-hay-and-forage-equipment',src:'AuctionTime',a:'17 Nov',d:'top',bid:0,n:'حوالي 10,000 بالة بس، مزارع بيبطّل شغل. المزايدة لسه صفر.'},
+ {k:'B',m:'1290',s:'HDP HS',y:2019,b:null,p:null,c:'CA',loc:'Brandon, MB',sel:'Ritchie Bros',u:RB+'2019-krone-big-pack-1290hdp-high-speed-big-square-baler/16078056',src:'Ritchie Bros',a:'17 Nov'},
+ {k:'B',m:'1290',s:'HDP',y:2021,b:28000,p:128500,cad:181500,c:'CA',loc:'Olds, AB',sel:'مزارع (بيع مباشر)',u:'https://www.kijiji.ca/v-farming-equipment/red-deer/krone-1290hdp-big-square-baler/1740358141',src:'Kijiji',n:'عُقّادات Loop Master متحدثة، جهاز حمض، مُجمّع بالات، والشاشة معاها.'},
+ {k:'B',m:'1290',s:'HDP II',y:2014,b:80912,p:59500,c:'US',loc:'El Centro, CA',sel:'Krone America',u:TH+'234355615',src:'TractorHouse',n:'8 حبال، كثافة عالية جداً، ميزان، roller chute.'},
+ {k:'B',m:'1290',s:'HDP HS',y:2017,b:84182,p:69500,c:'US',loc:'Tulare, CA',sel:'Krone America',u:TH+'234356391',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HS',y:2016,b:35000,p:69900,c:'US',loc:'Klamath Falls, OR',sel:'Brim Tractor',u:TH+'225693795',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'',y:2018,b:30000,p:68000,c:'US',loc:'Newville, PA',sel:'Circle H Farms',u:TH+'257205187',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP XC',y:2014,b:64000,p:76506,c:'CA',loc:'Lacombe, AB',sel:'Pentagon Farm Centre',u:TH+'240546119',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP HS',y:2018,b:null,p:81465,c:'CA',loc:'Westlock, AB',sel:'Pentagon Farm Centre',u:TH+'249818637',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP HS',y:2015,b:73524,p:82155,c:'US',loc:'Tangent, OR',sel:'Linn Benton Tractor',u:TH+'244153577',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP II',y:2014,b:92766,p:82500,c:'US',loc:'El Centro, CA',sel:'Krone America',u:TH+'234355411',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HS',y:2021,b:22431,p:85000,c:'US',loc:'Scottsbluff, NE',sel:'Frank Implement',u:TH+'244557941',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP II',y:2015,b:62703,p:89500,c:'US',loc:'El Centro, CA',sel:'Krone America',u:TH+'234371693',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP II',y:2014,b:113793,p:89500,c:'US',loc:'El Centro, CA',sel:'Krone America',u:TH+'213136043',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HS XC',y:2015,b:null,p:96220,cad:135900,c:'CA',loc:'Manitoba',sel:'Minto Ag',u:MB+'261313155',src:'MarketBook'},
+ {k:'B',m:'1290',s:'HDP',y:null,b:null,p:97050,c:'US',loc:'Tangent, OR',sel:'Linn Benton Tractor',u:TH+'242901661',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'',y:2017,b:null,p:99000,c:'US',loc:'Roosevelt, UT',sel:'Big B Equipment',u:TH+'257456373',src:'TractorHouse',n:'معاها مُجمّع بالات Phiber.'},
+ {k:'B',m:'1290',s:'HS',y:2021,b:19652,p:105000,c:'US',loc:'Scottsbluff, NE',sel:'Frank Implement',u:TH+'235279931',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP',y:2021,b:36118,p:110000,c:'US',loc:'Jerome, ID',sel:'Farm Equipment USA',u:TH+'241132255',src:'TractorHouse',n:'كاملة: ميزان، كاميرا، roller chute، مادة حافظة، دركسيون هيدروليك للعجل.'},
+ {k:'B',m:'1290',s:'HDP X-treme',y:2020,b:null,p:123900,cad:175000,c:'CA',loc:'Nobleford, AB',sel:'Noble Equipment',u:MB+'248510079',src:'MarketBook'},
+ {k:'B',m:'1290',s:'HDP',y:2021,b:null,p:123968,c:'CA',loc:'Olds, AB',sel:'Rocky Mountain Equipment',u:TH+'241095551',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'',y:2021,b:12730,p:134900,c:'US',loc:'Northfield, MN',sel:'Minnesota Ag Group',u:TH+'243556307',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HS',y:2022,b:1904,p:139500,c:'US',loc:'Tulare, CA',sel:'Krone America',u:TH+'238369983',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HS',y:2023,b:8989,p:140000,c:'US',loc:'Scottsbluff, NE',sel:'Frank Implement',u:TH+'243870415',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP HS',y:2020,b:null,p:140261,c:'CA',loc:'Nobleford, AB',sel:'Noble Equipment',u:TH+'256501215',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP HS',y:2022,b:18900,p:145220,c:'CA',loc:'Nobleford, AB',sel:'Noble Equipment',u:TH+'249106057',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP II',y:2020,b:60000,p:149500,c:'US',loc:'El Centro, CA',sel:'Krone America',u:TH+'229338847',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP',y:2023,b:null,p:154429,c:'CA',loc:'Nobleford, AB',sel:'Noble Equipment',u:TH+'258115249',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP VC',y:2019,b:17904,p:154500,c:'US',loc:'Inwood, IA',sel:'Fabers Farm Equipment',u:'https://www.machinerypete.com/details/big-square-balers/2019/krone/bp1290hdp-vc/21270489',src:'MachineryPete'},
+ {k:'B',m:'1290',s:'HDP II',y:2020,b:null,p:159500,c:'US',loc:'El Centro, CA',sel:'Krone America',u:TH+'246345041',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP HS',y:2020,b:null,p:162930,c:'CA',loc:'Nobleford, AB',sel:'Noble Equipment',u:TH+'256998645',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP HS VC',y:2019,b:null,p:172500,c:'US',loc:'Inwood, IA',sel:'Fabers Farm Equipment',u:TH+'247047887',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP HS',y:2024,b:3223,p:175000,c:'US',loc:'Friona, TX',sel:'Mixer Center',u:TH+'244856985',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP VC',y:2023,b:5800,p:184000,c:'US',loc:'Leesburg, GA',sel:'Elite Ag',u:TH+'257514861',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP HS',y:2024,b:1,p:195000,c:'US',loc:'Lincoln, KS',sel:'Lincoln Farm Supply',u:TH+'249818113',src:'TractorHouse',n:'زيرو تقريباً.'},
+ {k:'B',m:'1290',s:'HDP HS',y:2023,b:11273,p:199000,c:'US',loc:'Blackfoot, ID',sel:'Hobby Time Equipment',u:TH+'252882477',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP',y:2025,b:null,p:200000,c:'US',loc:'Muleshoe, TX',sel:'West Texas Machinery',u:TH+'244112483',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP',y:2025,b:11250,p:201891,c:'CA',loc:'Nobleford, AB',sel:'Noble Equipment',u:TH+'252948789',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP VC',y:2022,b:15431,p:210000,c:'US',loc:'Napoleon, OH',sel:'Paul Martin & Sons',u:TH+'248239167',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP HS',y:2023,b:null,p:220533,c:'US',loc:'Casa Grande, AZ',sel:'Dykstra Machinery',u:TH+'230262103',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'',y:2024,b:null,p:235000,c:'US',loc:'Fruitland, ID',sel:'Farm Equipment USA',u:TH+'252347861',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP II XC',y:2021,b:18406,p:249500,c:'US',loc:'Inwood, IA',sel:'Fabers Farm Equipment',u:TH+'230871957',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP',y:2025,b:5505,p:255000,c:'US',loc:'Dalhart, TX',sel:'Mixer Center',u:TH+'254119505',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP',y:2010,b:null,p:null,c:'US',loc:'Wellington, NV',sel:'N&S Tractor',u:TH+'256109589',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'XC',y:2009,b:66743,p:null,c:'US',loc:'Manhattan, MT',sel:'Churchill Equipment',u:TH+'256256603',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'XC',y:2012,b:20613,p:null,c:'CA',loc:'St-Bruno, QC',sel:'Groupe Symac',u:TH+'260411157',src:'TractorHouse',n:'عدد بالات قليل. اسأل على السعر.'},
+ {k:'B',m:'1290',s:'HS',y:2014,b:null,p:null,c:'US',loc:'Fruitland, ID',sel:'Farm Equipment USA',u:TH+'255323319',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HS',y:2015,b:null,p:null,c:'US',loc:'Yerington, NV',sel:'N&S Tractor',u:TH+'256110219',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP II',y:2017,b:91233,p:null,c:'US',loc:'El Centro, CA',sel:'Krone America',u:TH+'256486703',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HS',y:2018,b:null,p:null,c:'US',loc:'Stockton, CA',sel:'N&S Tractor',u:TH+'256113391',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP HS',y:2020,b:59569,p:null,c:'US',loc:'Turlock, CA',sel:'Krone America',u:TH+'235320413',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP',y:2021,b:74465,p:null,c:'US',loc:'El Centro, CA',sel:'Krone America',u:TH+'256502525',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP HS',y:2023,b:null,p:null,c:'US',loc:'El Centro, CA',sel:'Krone America',u:TH+'237689081',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP II',y:2023,b:null,p:null,c:'US',loc:'El Centro, CA',sel:'Krone America',u:TH+'237688969',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP',y:2023,b:null,p:null,c:'US',loc:'Tulare, CA',sel:'Krone America',u:TH+'238370479',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP HS',y:2023,b:null,p:null,c:'US',loc:'Olive Branch, MS',sel:'Krone America',u:TH+'254397549',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP HS',y:2024,b:null,p:null,c:'US',loc:'Tulare, CA',sel:'Krone America',u:TH+'238370501',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP HS',y:2024,b:null,p:null,c:'US',loc:'Tulare, CA',sel:'Krone America',u:TH+'254493481',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP II',y:2024,b:null,p:null,c:'US',loc:'Tulare, CA',sel:'Krone America',u:TH+'238370329',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP VC',y:2024,b:null,p:null,c:'US',loc:'Tulare, CA',sel:'Krone America',u:TH+'238370453',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP II',y:2024,b:null,p:null,c:'US',loc:'Olive Branch, MS',sel:'Krone America',u:TH+'254398647',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP VC',y:2024,b:null,p:null,c:'US',loc:'Olive Branch, MS',sel:'Krone America',u:TH+'254398299',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP II XC',y:2024,b:null,p:null,c:'US',loc:'El Centro, CA',sel:'Krone America',u:TH+'256499919',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP',y:2024,b:1,p:null,c:'US',loc:'Mandan, ND',sel:'West River Equipment',u:TH+'233975045',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP HS',y:2024,b:null,p:null,c:'US',loc:'Friona, TX',sel:'Mixer Center',u:TH+'246208509',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HS XC',y:2024,b:null,p:null,c:'US',loc:'Rushville, IN',sel:'Fraley Implement',u:TH+'252041623',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'',y:2024,b:null,p:null,c:'US',loc:'Orange, VA',sel:'Ridgeview Equipment',u:TH+'262108651',src:'TractorHouse',nw:1},
+ {k:'B',m:'1290',s:'',y:2024,b:null,p:null,c:'US',loc:'Jerome, ID',sel:'Farm Equipment USA',u:TH+'252347855',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP',y:2025,b:null,p:null,c:'US',loc:'Billings, MT',sel:'MH Equipment',u:TH+'254984649',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP',y:2025,b:null,p:null,c:'US',loc:'Ionia, MI',sel:'Farm Depot',u:TH+'255253473',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HS',y:2025,b:null,p:null,c:'US',loc:'Roosevelt, UT',sel:'Big B Equipment',u:TH+'261278459',src:'TractorHouse',nw:1},
+ {k:'B',m:'1290',s:'',y:2025,b:null,p:null,c:'US',loc:'Eaton, CO',sel:'Mixer Center',u:TH+'248303821',src:'TractorHouse'},
+ {k:'B',m:'1290',s:'HDP II',y:2026,b:null,p:null,c:'US',loc:'Yerington, NV',sel:'N&S Tractor',u:TH+'259349389',src:'TractorHouse',n:'جديدة.'},
+ {k:'B',m:'1290',s:'HDP',y:2026,b:null,p:null,c:'US',loc:'Yerington, NV',sel:'N&S Tractor',u:TH+'260285549',src:'TractorHouse',n:'جديدة.'},
+ {k:'B',m:'1290',s:'HDP VC',y:2026,b:null,p:null,c:'CA',loc:'Ilderton, ON',sel:'Stratford Farm Equipment',u:TH+'260137685',src:'TractorHouse',n:'جديدة، ديمو.'},
+ {k:'B',m:'1290',s:'HDP VC',y:2026,b:null,p:null,c:'CA',loc:'Stratford, ON',sel:'Stratford Farm Equipment',u:TH+'256354679',src:'TractorHouse',n:'جديدة.'},
+ {k:'B',m:'1290',s:'Pro',y:2026,b:null,p:null,c:'US',loc:'Napoleon, OH',sel:'Paul Martin & Sons',u:TH+'262120387',src:'TractorHouse',nw:1,n:'الجيل السادس الجديد.'},
+ {k:'B',m:'1290',s:'',y:2027,b:null,p:null,c:'US',loc:'Fruitland, ID',sel:'Farm Equipment USA',u:TH+'260910927',src:'TractorHouse',n:'جديدة، عندهم 4.'},
+
+ // ===== John Deere 1710 =====
+ {k:'P',m:'1710',y:null,r:'12 خط × 38 بوصة',p:9250,c:'US',loc:'Hillsboro, TX',sel:'Kaddatz Auctioneering',u:'https://www.fastline.com/farm-equipment/listing-detail/john-deere-1710-kaddatz-auctioneering-farm-equipment-sales-(hillsboro-tx)-hillsboro-texas/135c11d9-fac2-452b-9cd9-392f6bc41745',src:'Fastline',d:'top',n:'فاكيوم، منظفات بقايا، طي هيدروليك. أرخص 12 خط معروض.'},
+ {k:'P',m:'1710',y:null,r:'12 خط × 30 بوصة',p:12000,c:'US',loc:'Sleepy Eye, MN',sel:'Miller Sellner',u:TH+'257249943',src:'TractorHouse',d:'top',n:'صناديق مبيد، منظفات بقايا، عجل مساعد، شاشة 250. كاملة بسعر قليل.'},
+ {k:'P',m:'1710',y:1999,r:'12 خط × 30 بوصة',p:12000,c:'US',loc:'Glencoe, MN',sel:'Haukos Bros',u:TH+'261270989',src:'TractorHouse',d:'good',nw:1,n:'طي رأسي، ضغط هوائي على الخطوط، صناديق 3 بوشل، شاشة وماركرز. التوصيل متاح.'},
+ {k:'P',m:'1710',y:1996,r:'8 خط × 30 بوصة',p:12900,c:'US',loc:'Beaver Dam, WI',sel:'Miller Equipment Marketing',u:TH+'253869071',src:'TractorHouse',n:'فاكيوم بأطباق ذرة، طي رأسي، حالة كويسة.'},
+ {k:'P',m:'1710',y:2009,r:'8 خط × 36 بوصة',p:14900,c:'US',loc:'Clay Center, NE',sel:'RD Equipment',u:TH+'253527145',src:'TractorHouse',n:'جنازير الحركة كلها جديدة. من غير فتّاحات.'},
+ {k:'P',m:'1710',y:null,r:'12 خط × 30 بوصة',p:18300,c:'US',loc:'North Platte, NE',sel:'Titan Machinery',u:TH+'262040799',src:'TractorHouse',d:'good',nw:1,n:'متحوّلة Precision Planting: DeltaForce، Speed Tubes، تانك بذور كبير Kinze. تحديثات بتكلف أكتر من سعرها.'},
+ {k:'P',m:'1710',y:null,r:'12 خط × 30 بوصة',p:19500,c:'US',loc:'Litchfield, MN',sel:'Schlauderaff Implement',u:TH+'238253061',src:'TractorHouse + Fastline',n:'Finger pickup، منظفات خطوط، شاشة 250، طرمبة بستم.'},
+ {k:'P',m:'1710',y:null,r:'12 خط × 30 بوصة',p:26000,c:'US',loc:'Moro, AR',sel:'East Arkansas Equipment',u:'https://www.machinerypete.com/details/planters/john-deere/1710/20214956',src:'MachineryPete'},
+ {k:'P',m:'1710',y:null,r:'12 خط × 30 بوصة',p:null,c:'US',loc:'Ulysses, KS',sel:'BigIron',u:'https://www.bigiron.com/Lots/john-deere-1710-maxemerge-plus-12r30-planter-4',src:'BigIron',a:'18 Nov',d:'good',n:'MaxEmerge Plus، طي هيدروليك، 30 قدم.'},
+ {k:'P',m:'1710',y:null,r:'6 خط × 38 بوصة',p:null,c:'US',loc:'Oglethorpe, GA',sel:'Rich & Rich Auctioneers',u:'https://bid.richandrichauctioneers.com/auctions/1808284/lots/55949566',src:'Rich & Rich',a:'5 Dec'}
+];
+
+const MKT=[
+ {t:'980H',m:'980H',sold:'اتباعت في المزادات بين $35,200 و $89,100'},
+ {t:'980G',m:'980G'},
+ {t:'972H',m:'972H',sold:'اتباعت في المزادات بين $59,400 و $73,700'},
+ {t:'972G',m:'972G',sold:'آخر بيع في مزاد: $63,800 (2004 972G II)'},
+ {t:'966D',m:'966D'},
+ {t:'Krone 1290 HDP · 2012–2018',m:'1290',f:x=>x.y>=2012&&x.y<=2018&&/HDP/.test(x.s||'')},
+ {t:'Krone 1290 HDP · 2019–2023',m:'1290',f:x=>x.y>=2019&&x.y<=2023&&/HDP/.test(x.s||'')},
+ {t:'JD 1710 Planter',m:'1710',sold:'آخر بيع في مزاد: $7,370 (2009، كانساس)'}
+];
+
+const fmt=n=>n.toLocaleString('en-US');
+const median=a=>{const s=[...a].sort((x,y)=>x-y);const m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2};
+const MED={};
+['980H','980G','972H','972G','966D'].forEach(m=>{const ps=D.filter(x=>x.m===m&&x.p&&x.p<200000).map(x=>x.p);if(ps.length)MED[m]=median(ps)});
+const name=x=>x.k==='B'?'BP1290'+(x.s?' '+x.s:''):x.k==='P'?'JD 1710':(x.m+(x.s?' '+x.s:''));
+const flag=c=>c==='CA'?'كندا':'أمريكا';
+const useVal=x=>x.k==='L'?x.h:x.k==='B'?x.b:null;
+const useTxt=x=>x.k==='L'?(x.h?'<span class="num">'+fmt(x.h)+'</span> ساعة':''):x.k==='B'?(x.b?'<span class="num">'+fmt(x.b)+'</span> بالة':''):(x.r||'');
+const below=x=>x.k==='L'&&x.p&&MED[x.m]?Math.round((1-x.p/MED[x.m])*100):null;
+const priceHTML=x=>x.p?'<span class="price">$'+fmt(x.p)+(x.cad?'<span class="cad">CAD '+fmt(x.cad)+'</span>':'')+'</span>':
+  (x.a?'<span class="pill p-call">'+(x.bid!=null?'المزايدة <span class="num">$'+fmt(x.bid)+'</span>':'مزايدة')+'</span>':'<span class="pill p-call">اسأل عن السعر</span>');
+function tags(x){
+  const t=[];
+  if(x.d==='top')t.push('<span class="pill p-top">صفقة ممتازة</span>');
+  if(x.d==='good')t.push('<span class="pill p-good">سعر كويس</span>');
+  if(x.d==='warn')t.push('<span class="pill p-warn">اتأكد الأول</span>');
+  if(x.a)t.push('<span class="pill p-auc">مزاد'+(/\d/.test(x.a)?' · يقفل <span class="num">'+x.a+'</span>':'')+'</span>');
+  if(x.nw)t.push('<span class="pill p-new">نازلة جديد</span>');
+  return t.join('');
+}
+
+// stats
+const nUS=D.filter(x=>x.c==='US').length,nCA=D.filter(x=>x.c==='CA').length;
+document.getElementById('stats').innerHTML=
+ [[D.length,'معروض'],[D.filter(x=>x.d==='top').length,'صفقة ممتازة'],[D.filter(x=>x.d==='good').length,'سعر كويس'],[D.filter(x=>x.a).length,'في مزادات'],[nUS+' / '+nCA,'أمريكا / كندا']]
+ .map(([v,l])=>'<div class="stat"><b class="num">'+v+'</b><span>'+l+'</span></div>').join('');
+
+// deals, grouped by kind
+const card=x=>{const b=below(x);
+  return '<a class="deal" href="'+x.u+'" target="_blank" rel="noopener">'+
+  '<div class="top"><span class="model">'+name(x)+'<small>'+(x.y||'')+'</small></span>'+(x.a?'<span class="pill p-auc">مزاد · <span class="num">'+x.a+'</span></span>':'<span class="pill p-top">صفقة ممتازة</span>')+'</div>'+
+  '<div>'+(x.p?'<div class="price">$'+fmt(x.p)+(x.cad?'<span class="cad">CAD '+fmt(x.cad)+'</span>':'')+'</div>':'<div class="price">'+(x.bid!=null?'$'+fmt(x.bid):'—')+' <span class="cad">آخر مزايدة</span></div>')+'</div>'+
+  '<p class="why">'+(x.n||'')+'</p>'+
+  '<div class="meta">'+(useTxt(x)?'<span>'+useTxt(x)+'</span>':'')+'<span>'+x.loc+' · '+flag(x.c)+'</span>'+(b>0?'<span>أقل من المتوسط بـ <span class="num">'+b+'%</span></span>':'')+'</div>'+
+  '<div class="meta"><span>'+x.sel+'</span></div>'+
+  '<span class="go">افتح الإعلان ←</span></a>'};
+const groups=[['L','لودرات كات'],['B','مكابس Krone 1290'],['P','بلانتر John Deere 1710']];
+document.getElementById('deals').innerHTML=groups.map(([k,t])=>{const tops=D.filter(x=>x.k===k&&x.d==='top').sort((a,b)=>(a.a?1:0)-(b.a?1:0));return tops.length?'<h3>'+t+'</h3><div class="deals" style="margin-top:10px">'+tops.map(card).join('')+'</div>':''}).join('<div style="height:14px"></div>');
+
+// market
+document.getElementById('mkt').innerHTML=MKT.map(o=>{const rows=D.filter(x=>x.m===o.m&&x.p&&(!o.f||o.f(x))&&(x.k!=='L'||x.p<200000));const ps=rows.map(x=>x.p);if(!ps.length)return'';
+ return '<div class="mk"><div class="model">'+o.t+'</div><div class="num big">$'+fmt(Math.round(median(ps)/500)*500)+'</div><p>متوسط المعروض · من <span class="num">$'+fmt(Math.min(...ps))+'</span> لـ <span class="num">$'+fmt(Math.max(...ps))+'</span></p>'+(o.sold?'<p class="sold">'+o.sold.replace(/\$[\d,]+/g,m=>'<span class="num">'+m+'</span>')+'</p>':'')+'</div>'}).join('');
+
+// list
+const st={m:'all',deals:false,auc:false,priced:false,c:'all',sort:'deal'};
+const rank={top:0,good:1,warn:4};
+function render(){
+  let r=D.filter(x=>(st.m==='all'||x.m===st.m)&&(!st.deals||x.d==='top'||x.d==='good')&&(!st.auc||x.a)&&(!st.priced||x.p)&&(st.c==='all'||x.c===st.c));
+  const big=1e9;
+  if(st.sort==='deal')r.sort((a,b)=>(rank[a.d]??3)-(rank[b.d]??3)||(a.p?0:1)-(b.p?0:1)||(a.p||big)-(b.p||big));
+  if(st.sort==='price')r.sort((a,b)=>(a.p||big)-(b.p||big));
+  if(st.sort==='use')r.sort((a,b)=>(useVal(a)??big)-(useVal(b)??big));
+  if(st.sort==='year')r.sort((a,b)=>(b.y||0)-(a.y||0));
+  document.getElementById('count').textContent=r.length+' معروض';
+  const head='<div class="row head"><span>الموديل</span><span>السنة</span><span>الاستخدام</span><span>السعر</span><span>المكان والتفاصيل</span><span></span></div>';
+  document.getElementById('list').innerHTML=r.length?head+r.map(x=>
+   '<a class="row" href="'+x.u+'" target="_blank" rel="noopener">'+
+   '<span class="c-model model">'+name(x)+'</span>'+
+   '<span class="c-year num">'+(x.y||'—')+'</span>'+
+   '<span class="c-use use">'+(useTxt(x)||'—')+'</span>'+
+   '<span class="c-price">'+priceHTML(x)+'</span>'+
+   '<span class="where"><span class="yh">'+[x.y?'موديل <span class="num">'+x.y+'</span>':'',useTxt(x)].filter(Boolean).join(' · ')+'</span><div>'+x.loc+' · '+flag(x.c)+' · <span class="s">'+x.sel+'</span></div>'+(x.n?'<div class="note">'+x.n+'</div>':'')+'<div class="tags" style="margin-top:4px">'+tags(x)+'</div></span>'+
+   '<span class="src">'+x.src+'</span></a>').join(''):'<div class="empty">مفيش حاجة بالفلتر ده. جرّب "الكل".</div>';
+}
+document.querySelectorAll('.chip[data-m]').forEach(b=>b.addEventListener('click',()=>{st.m=b.dataset.m;document.querySelectorAll('.chip[data-m]').forEach(o=>o.setAttribute('aria-pressed',o===b));render()}));
+const tg=(id,k)=>{const b=document.getElementById(id);b.addEventListener('click',()=>{st[k]=!st[k];b.setAttribute('aria-pressed',st[k]);render()})};
+tg('f-deals','deals');tg('f-auc','auc');tg('f-priced','priced');
+document.getElementById('f-country').addEventListener('change',e=>{st.c=e.target.value;render()});
+document.getElementById('f-sort').addEventListener('change',e=>{st.sort=e.target.value;render()});
+render();
+</script>
